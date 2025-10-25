@@ -1,12 +1,12 @@
-// ------------------ GLOBALS ------------------
 let parentId = null;
 let selectedChildId = null;
 let blockedSites = [];
 
-// ------------------ ON LOAD ------------------
+// ------------------ INITIAL LOAD ------------------
 document.addEventListener("DOMContentLoaded", async () => {
   const parentData = JSON.parse(localStorage.getItem("parentData"));
   if (!parentData) {
+    alert("Login required.");
     window.location.href = "login.html";
     return;
   }
@@ -14,30 +14,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   parentId = parentData.id;
   document.getElementById("welcomeText").textContent = `Welcome, ${parentData.name}!`;
 
-  await loadChildData();
-  setupEventListeners();
-});
-
-// ------------------ EVENT HANDLERS ------------------
-function setupEventListeners() {
   document.getElementById("addSiteBtn").addEventListener("click", addBlockedSite);
   document.getElementById("saveTimeBtn").addEventListener("click", saveTimeLimit);
-}
 
-// ------------------ LOAD CHILD SETTINGS ------------------
-async function loadChildData() {
-  const { data: children } = await supabase
+  await loadChildAndSettings();
+});
+
+// ------------------ LOAD CHILD + SETTINGS ------------------
+async function loadChildAndSettings() {
+  const { data: children, error: childErr } = await supabase
     .from("children")
     .select("id, name")
     .eq("parent_id", parentId);
 
-  if (!children || children.length === 0) {
-    alert("No children added yet. Please add a child first.");
+  if (childErr || !children || children.length === 0) {
+    alert("Please add a child first.");
     return;
   }
 
   selectedChildId = children[0].id;
+  await refreshSettings();
+  await loadActivityCharts();
+}
 
+// ------------------ REFRESH SETTINGS ------------------
+async function refreshSettings() {
   const { data: settings } = await supabase
     .from("child_settings")
     .select("*")
@@ -48,8 +49,6 @@ async function loadChildData() {
   renderBlockedSites();
 
   document.getElementById("timeLimit").value = settings?.time_limit_minutes || 120;
-
-  await loadActivityLogs();
 }
 
 // ------------------ BLOCKED SITES ------------------
@@ -57,125 +56,115 @@ function renderBlockedSites() {
   const tbody = document.querySelector("#blockedSitesTable tbody");
   tbody.innerHTML = "";
 
-  blockedSites.forEach((site, idx) => {
+  if (blockedSites.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;color:#999;">No blocked sites</td></tr>`;
+    return;
+  }
+
+  blockedSites.forEach((site, i) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${site}</td>
-      <td><button class="btn-delete" onclick="deleteBlockedSite(${idx})">Delete</button></td>
-    `;
+      <td><button class="btn-delete" onclick="deleteBlockedSite(${i})">Delete</button></td>`;
     tbody.appendChild(row);
   });
 }
 
 async function addBlockedSite() {
   const input = document.getElementById("siteInput");
-  const site = input.value.trim();
+  const site = input.value.trim().toLowerCase();
+  if (!site) return alert("Enter a valid site.");
 
-  if (!site) {
-    alert("Please enter a website.");
-    return;
-  }
-
-  if (blockedSites.includes(site)) {
-    alert("This site is already blocked.");
-    return;
-  }
+  if (blockedSites.includes(site)) return alert("Already blocked.");
 
   blockedSites.push(site);
-  renderBlockedSites();
-
-  const { error } = await supabase
-    .from("child_settings")
-    .update({ blocked_sites: blockedSites })
-    .eq("child_id", selectedChildId);
-
-  if (error) console.error(error);
-  else input.value = "";
+  await updateBlockedSites();
+  input.value = "";
 }
 
 async function deleteBlockedSite(index) {
   blockedSites.splice(index, 1);
-  renderBlockedSites();
+  await updateBlockedSites();
+}
 
+async function updateBlockedSites() {
   const { error } = await supabase
     .from("child_settings")
     .update({ blocked_sites: blockedSites })
     .eq("child_id", selectedChildId);
 
-  if (error) console.error(error);
-}
-
-// ------------------ TIME MANAGEMENT ------------------
-async function saveTimeLimit() {
-  const limit = parseInt(document.getElementById("timeLimit").value);
-  const { error } = await supabase
-    .from("child_settings")
-    .update({ time_limit_minutes: limit })
-    .eq("child_id", selectedChildId);
-
   if (error) {
-    alert("Failed to update time limit.");
     console.error(error);
+    alert("Failed to update list.");
   } else {
-    alert("Time limit updated successfully!");
+    renderBlockedSites();
   }
 }
 
-// ------------------ ACTIVITY & USAGE CHARTS ------------------
-async function loadActivityLogs() {
+// ------------------ TIME LIMIT ------------------
+async function saveTimeLimit() {
+  const minutes = parseInt(document.getElementById("timeLimit").value);
+  const { error } = await supabase
+    .from("child_settings")
+    .update({ time_limit_minutes: minutes })
+    .eq("child_id", selectedChildId);
+
+  if (error) {
+    console.error(error);
+    alert("Failed to update time limit.");
+  } else {
+    alert(`Time limit set to ${minutes} minutes.`);
+  }
+}
+
+// ------------------ ACTIVITY CHARTS ------------------
+async function loadActivityCharts() {
   const { data: logs } = await supabase
     .from("activity_logs")
     .select("site_or_app, duration_seconds, timestamp")
     .eq("child_id", selectedChildId)
-    .order("timestamp", { ascending: false });
+    .order("timestamp", { ascending: true });
 
   if (!logs || logs.length === 0) return;
 
-  // Aggregate durations by site/app
-  const usageMap = {};
-  logs.forEach(log => {
-    usageMap[log.site_or_app] = (usageMap[log.site_or_app] || 0) + log.duration_seconds;
+  const usageByApp = {};
+  logs.forEach(l => {
+    usageByApp[l.site_or_app] = (usageByApp[l.site_or_app] || 0) + l.duration_seconds;
   });
 
-  const activityCtx = document.getElementById("activityChart").getContext("2d");
-  new Chart(activityCtx, {
+  new Chart(document.getElementById("activityChart"), {
     type: "bar",
     data: {
-      labels: Object.keys(usageMap),
+      labels: Object.keys(usageByApp),
       datasets: [{
-        label: "Usage (minutes)",
-        data: Object.values(usageMap).map(v => (v / 60).toFixed(1)),
-        backgroundColor: "#1a3fa7",
-      }],
+        label: "Usage (mins)",
+        data: Object.values(usageByApp).map(v => (v / 60).toFixed(1)),
+        backgroundColor: "#1a3fa7"
+      }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } },
+    options: { plugins: { legend: { display: false } }, responsive: true }
   });
 
-  // Chart 2: Time Usage per Hour
-  const today = new Date().toISOString().split("T")[0];
-  const todayLogs = logs.filter(l => l.timestamp.startsWith(today));
-
-  const hourlyData = new Array(24).fill(0);
-  todayLogs.forEach(log => {
-    const hour = new Date(log.timestamp).getHours();
-    hourlyData[hour] += log.duration_seconds / 60;
+  const hourly = new Array(24).fill(0);
+  logs.forEach(l => {
+    const hour = new Date(l.timestamp).getHours();
+    hourly[hour] += l.duration_seconds / 60;
   });
 
-  const timeCtx = document.getElementById("timeUsageChart").getContext("2d");
-  new Chart(timeCtx, {
+  new Chart(document.getElementById("timeUsageChart"), {
     type: "line",
     data: {
       labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
       datasets: [{
-        label: "Usage (minutes)",
-        data: hourlyData,
+        label: "Usage (mins)",
+        data: hourly,
         fill: true,
         backgroundColor: "rgba(26, 63, 167, 0.2)",
         borderColor: "#1a3fa7",
-        tension: 0.4,
-      }],
+        tension: 0.4
+      }]
     },
-    options: { responsive: true, scales: { y: { beginAtZero: true } } },
+    options: { scales: { y: { beginAtZero: true } } }
   });
 }
 
