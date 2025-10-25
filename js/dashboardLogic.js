@@ -1,197 +1,186 @@
-const supabase = createClient();
-let currentChildId = null;
-let timeUsageChart = null;
+// ------------------ GLOBALS ------------------
+let parentId = null;
+let selectedChildId = null;
+let blockedSites = [];
 
+// ------------------ ON LOAD ------------------
+document.addEventListener("DOMContentLoaded", async () => {
+  const parentData = JSON.parse(localStorage.getItem("parentData"));
+  if (!parentData) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  parentId = parentData.id;
+  document.getElementById("welcomeText").textContent = `Welcome, ${parentData.name}!`;
+
+  await loadChildData();
+  setupEventListeners();
+});
+
+// ------------------ EVENT HANDLERS ------------------
+function setupEventListeners() {
+  document.getElementById("addSiteBtn").addEventListener("click", addBlockedSite);
+  document.getElementById("saveTimeBtn").addEventListener("click", saveTimeLimit);
+}
+
+// ------------------ LOAD CHILD SETTINGS ------------------
 async function loadChildData() {
-  const parentEmail = localStorage.getItem("parent_email");
-
-  const { data: parent } = await supabase
-    .from("parents")
-    .select("id")
-    .eq("email", parentEmail)
-    .single();
-
   const { data: children } = await supabase
     .from("children")
-    .select("*")
-    .eq("parent_id", parent.id);
+    .select("id, name")
+    .eq("parent_id", parentId);
 
-  const childContainer = document.getElementById("childContainer");
-  childContainer.innerHTML = "";
-  children.forEach((child) => {
-    const card = document.createElement("div");
-    card.classList.add("card");
-    card.innerHTML = `
-      <h4>${child.name}</h4>
-      <p>Device ID: ${child.device_id || "N/A"}</p>
-      <button class="btn" onclick="selectChild('${child.id}')">Manage</button>
-    `;
-    childContainer.appendChild(card);
-  });
-}
+  if (!children || children.length === 0) {
+    alert("No children added yet. Please add a child first.");
+    return;
+  }
 
-async function selectChild(childId) {
-  currentChildId = childId;
-  await loadBlockedSites();
-  await loadTimeLimit();
-  await loadActivityLogs();
-  await loadTimeUsageChart();
-}
+  selectedChildId = children[0].id;
 
-/* ========== BLOCKED SITES ========== */
-async function loadBlockedSites() {
-  const { data } = await supabase
+  const { data: settings } = await supabase
     .from("child_settings")
-    .select("blocked_sites")
-    .eq("child_id", currentChildId)
+    .select("*")
+    .eq("child_id", selectedChildId)
     .single();
 
-  const sites = data?.blocked_sites || [];
-  const list = document.getElementById("blockedSitesList");
-  list.innerHTML = "";
-  sites.forEach((site, index) => {
-    list.innerHTML += `
-      <tr>
-        <td>${site}</td>
-        <td><button class="btn btn-danger" onclick="deleteBlockedSite(${index})">Delete</button></td>
-      </tr>
+  blockedSites = settings?.blocked_sites || [];
+  renderBlockedSites();
+
+  document.getElementById("timeLimit").value = settings?.time_limit_minutes || 120;
+
+  await loadActivityLogs();
+}
+
+// ------------------ BLOCKED SITES ------------------
+function renderBlockedSites() {
+  const tbody = document.querySelector("#blockedSitesTable tbody");
+  tbody.innerHTML = "";
+
+  blockedSites.forEach((site, idx) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${site}</td>
+      <td><button class="btn-delete" onclick="deleteBlockedSite(${idx})">Delete</button></td>
     `;
+    tbody.appendChild(row);
   });
 }
 
 async function addBlockedSite() {
-  const siteInput = document.getElementById("blockedSiteInput");
-  const newSite = siteInput.value.trim();
-  if (!newSite) return alert("Enter a website!");
+  const input = document.getElementById("siteInput");
+  const site = input.value.trim();
 
-  const { data } = await supabase
+  if (!site) {
+    alert("Please enter a website.");
+    return;
+  }
+
+  if (blockedSites.includes(site)) {
+    alert("This site is already blocked.");
+    return;
+  }
+
+  blockedSites.push(site);
+  renderBlockedSites();
+
+  const { error } = await supabase
     .from("child_settings")
-    .select("blocked_sites")
-    .eq("child_id", currentChildId)
-    .single();
+    .update({ blocked_sites: blockedSites })
+    .eq("child_id", selectedChildId);
 
-  const updated = [...(data?.blocked_sites || []), newSite];
-
-  await supabase
-    .from("child_settings")
-    .update({ blocked_sites: updated })
-    .eq("child_id", currentChildId);
-
-  siteInput.value = "";
-  loadBlockedSites();
+  if (error) console.error(error);
+  else input.value = "";
 }
 
 async function deleteBlockedSite(index) {
-  const { data } = await supabase
-    .from("child_settings")
-    .select("blocked_sites")
-    .eq("child_id", currentChildId)
-    .single();
+  blockedSites.splice(index, 1);
+  renderBlockedSites();
 
-  const updated = data.blocked_sites.filter((_, i) => i !== index);
-  await supabase
+  const { error } = await supabase
     .from("child_settings")
-    .update({ blocked_sites: updated })
-    .eq("child_id", currentChildId);
+    .update({ blocked_sites: blockedSites })
+    .eq("child_id", selectedChildId);
 
-  loadBlockedSites();
+  if (error) console.error(error);
 }
 
-/* ========== TIME LIMIT ========== */
-async function loadTimeLimit() {
-  const { data } = await supabase
+// ------------------ TIME MANAGEMENT ------------------
+async function saveTimeLimit() {
+  const limit = parseInt(document.getElementById("timeLimit").value);
+  const { error } = await supabase
     .from("child_settings")
-    .select("time_limit_minutes")
-    .eq("child_id", currentChildId)
-    .single();
+    .update({ time_limit_minutes: limit })
+    .eq("child_id", selectedChildId);
 
-  document.getElementById("timeLimitInput").value = data?.time_limit_minutes || 120;
+  if (error) {
+    alert("Failed to update time limit.");
+    console.error(error);
+  } else {
+    alert("Time limit updated successfully!");
+  }
 }
 
-async function updateTimeLimit() {
-  const newLimit = parseInt(document.getElementById("timeLimitInput").value);
-  await supabase
-    .from("child_settings")
-    .update({ time_limit_minutes: newLimit })
-    .eq("child_id", currentChildId);
-
-  document.getElementById("timeLimitStatus").textContent = "Updated!";
-  setTimeout(() => (document.getElementById("timeLimitStatus").textContent = ""), 2000);
-  loadTimeUsageChart();
-}
-
-/* ========== TIME USAGE CHART ========== */
-async function loadTimeUsageChart() {
-  const { data: settings } = await supabase
-    .from("child_settings")
-    .select("time_limit_minutes")
-    .eq("child_id", currentChildId)
-    .single();
-
+// ------------------ ACTIVITY & USAGE CHARTS ------------------
+async function loadActivityLogs() {
   const { data: logs } = await supabase
     .from("activity_logs")
-    .select("duration_seconds, timestamp")
-    .eq("child_id", currentChildId);
-
-  const totalUsedMinutes = logs.reduce(
-    (sum, log) => sum + Math.floor(log.duration_seconds / 60),
-    0
-  );
-
-  const ctx = document.getElementById("timeUsageChart").getContext("2d");
-  if (timeUsageChart) timeUsageChart.destroy();
-
-  timeUsageChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: ["Used", "Remaining"],
-      datasets: [
-        {
-          data: [
-            totalUsedMinutes,
-            Math.max(settings.time_limit_minutes - totalUsedMinutes, 0),
-          ],
-          backgroundColor: ["#ff6b6b", "#4caf50"],
-        },
-      ],
-    },
-    options: {
-      plugins: {
-        legend: { position: "bottom" },
-      },
-    },
-  });
-}
-
-/* ========== ACTIVITY LOGS ========== */
-async function loadActivityLogs() {
-  const { data } = await supabase
-    .from("activity_logs")
-    .select("*")
-    .eq("child_id", currentChildId)
+    .select("site_or_app, duration_seconds, timestamp")
+    .eq("child_id", selectedChildId)
     .order("timestamp", { ascending: false });
 
-  const usageBody = document.getElementById("usageBody");
-  usageBody.innerHTML = "";
-  data.forEach((log) => {
-    usageBody.innerHTML += `
-      <tr>
-        <td>${new Date(log.timestamp).toLocaleString()}</td>
-        <td>${log.site_or_app}</td>
-        <td>${Math.floor(log.duration_seconds / 60)}</td>
-        <td>${log.action}</td>
-      </tr>
-    `;
+  if (!logs || logs.length === 0) return;
+
+  // Aggregate durations by site/app
+  const usageMap = {};
+  logs.forEach(log => {
+    usageMap[log.site_or_app] = (usageMap[log.site_or_app] || 0) + log.duration_seconds;
+  });
+
+  const activityCtx = document.getElementById("activityChart").getContext("2d");
+  new Chart(activityCtx, {
+    type: "bar",
+    data: {
+      labels: Object.keys(usageMap),
+      datasets: [{
+        label: "Usage (minutes)",
+        data: Object.values(usageMap).map(v => (v / 60).toFixed(1)),
+        backgroundColor: "#1a3fa7",
+      }],
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } },
+  });
+
+  // Chart 2: Time Usage per Hour
+  const today = new Date().toISOString().split("T")[0];
+  const todayLogs = logs.filter(l => l.timestamp.startsWith(today));
+
+  const hourlyData = new Array(24).fill(0);
+  todayLogs.forEach(log => {
+    const hour = new Date(log.timestamp).getHours();
+    hourlyData[hour] += log.duration_seconds / 60;
+  });
+
+  const timeCtx = document.getElementById("timeUsageChart").getContext("2d");
+  new Chart(timeCtx, {
+    type: "line",
+    data: {
+      labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+      datasets: [{
+        label: "Usage (minutes)",
+        data: hourlyData,
+        fill: true,
+        backgroundColor: "rgba(26, 63, 167, 0.2)",
+        borderColor: "#1a3fa7",
+        tension: 0.4,
+      }],
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } },
   });
 }
 
-/* ========== REALTIME SYNC ========== */
-supabase
-  .channel("child_updates")
-  .on("postgres_changes", { event: "*", schema: "public", table: "child_settings" }, () => {
-    loadBlockedSites();
-    loadTimeUsageChart();
-  })
-  .subscribe();
-
-document.addEventListener("DOMContentLoaded", loadChildData);
+// ------------------ LOGOUT ------------------
+function logoutParent() {
+  localStorage.removeItem("parentData");
+  window.location.href = "login.html";
+}
