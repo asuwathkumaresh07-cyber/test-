@@ -2,28 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ChildGuard — Dashboard</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChildGuard — Parent Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* --- GLOBAL STYLES --- */
     body {
+      font-family: "Poppins", sans-serif;
       margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background-color: #f3f6fa;
-      color: #333;
+      background-color: #f4f7fb;
+      color: #222;
     }
 
-    header.app-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: #0b2e75;
+    header {
+      background: #0b2e75;
       color: white;
-      padding: 10px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 30px;
     }
 
     .logo-title {
@@ -39,65 +38,35 @@
       object-fit: cover;
     }
 
-    .app-name {
-      font-size: 22px;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .nav-bar {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .nav-link {
+    .nav-bar a, .logout-btn {
       color: white;
       text-decoration: none;
+      margin-left: 16px;
       font-weight: 500;
+      cursor: pointer;
     }
 
-    .nav-link.active {
-      background-color: #1a3fa7;
+    .logout-btn {
+      background: #ff4b4b;
+      border: none;
       padding: 6px 12px;
       border-radius: 8px;
     }
 
-    .logout-btn {
-      background-color: #ff4b4b;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
+    main {
+      padding: 20px 40px;
     }
 
-    /* --- DASHBOARD BODY --- */
-    main.dashboard-container {
-      padding: 30px;
-      max-width: 1000px;
-      margin: auto;
+    .section-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      padding: 20px;
     }
 
     h2 {
       color: #0b2e75;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background-color: white;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 25px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .card-wide {
-      width: 100%;
-    }
-
-    .table-section {
-      margin-top: 10px;
     }
 
     table {
@@ -107,219 +76,115 @@
     }
 
     th, td {
-      text-align: left;
       padding: 10px;
       border-bottom: 1px solid #ddd;
-    }
-
-    th {
-      background-color: #f2f2f2;
-      color: #333;
+      text-align: left;
     }
 
     button {
       cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 14px;
-    }
-
-    .btn-add {
-      background-color: #007bff;
-      color: white;
     }
 
     .btn-delete {
       background-color: #ff4b4b;
       color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
     }
 
-    .time-section {
+    .input-group {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 20px;
+      gap: 10px;
+      margin-top: 10px;
     }
 
-    input[type="number"] {
-      padding: 6px;
-      width: 100px;
+    .input-group input, .input-group select {
+      flex: 1;
+      padding: 8px;
       border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .input-group button {
+      background-color: #0b2e75;
+      color: white;
+      border: none;
+      padding: 8px 14px;
       border-radius: 6px;
     }
 
     canvas {
       max-width: 100%;
+      margin-top: 10px;
     }
 
-    footer.app-footer {
-      background-color: #0b2e75;
-      color: white;
+    footer {
       text-align: center;
-      padding: 12px;
-      margin-top: 30px;
-    }
-
-    @media (max-width: 768px) {
-      header.app-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .nav-bar {
-        flex-wrap: wrap;
-      }
-      .time-section {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+      padding: 10px;
+      color: #888;
     }
   </style>
 </head>
-
 <body>
-  <header class="app-header">
+  <header>
     <div class="logo-title">
       <img src="assets/images/logo.jpg" alt="ChildGuard Logo" class="logo" />
-      <h1 class="app-name">ChildGuard — Dashboard</h1>
+      <h1>ChildGuard Dashboard</h1>
     </div>
-
-    <nav class="nav-bar">
-      <a href="dashboard.html" class="nav-link active">Home</a>
-      <a href="add_child.html" class="nav-link">Add Child</a>
-      <a href="settings.html" class="nav-link">Settings</a>
+    <div class="nav-bar">
+      <a href="dashboard.html">Home</a>
+      <a href="add_child.html">Add Child</a>
+      <a href="settings.html">Settings</a>
       <button class="logout-btn" onclick="logoutParent()">Logout</button>
-    </nav>
+    </div>
   </header>
 
-  <main class="dashboard-container">
-    <h2 id="welcomeText">Welcome, Parent!</h2>
+  <main>
+    <h2 id="welcomeText">Welcome</h2>
 
-    <!-- BLOCKED SITES SECTION -->
-    <section class="card">
+    <!-- Blocked Sites Management -->
+    <section class="section-card">
       <h3>Blocked Websites</h3>
-
-      <div class="table-section">
+      <div class="input-group">
         <input type="text" id="siteInput" placeholder="Enter website (e.g. youtube.com)" />
-        <button class="btn-add" onclick="addBlockedSite()">Add</button>
-
-        <table id="blockedSitesTable">
-          <thead>
-            <tr>
-              <th>Website</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Populated dynamically -->
-          </tbody>
-        </table>
+        <button id="addSiteBtn">Add</button>
       </div>
+      <table id="blockedSitesTable">
+        <thead>
+          <tr><th>Website</th><th>Action</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </section>
 
-    <!-- TIME MANAGEMENT SECTION -->
-    <section class="card">
+    <!-- Time Management -->
+    <section class="section-card">
       <h3>Time Management</h3>
-      <div class="time-section">
-        <label for="timeLimit">Set daily screen time (minutes):</label>
-        <input type="number" id="timeLimit" min="30" step="10" />
-        <button class="btn-add" onclick="updateTimeLimit()">Save</button>
+      <div class="input-group">
+        <select id="timeLimit">
+          <option value="30">0.5 hour</option>
+          <option value="60">1 hour</option>
+          <option value="120">2 hours</option>
+          <option value="180">3 hours</option>
+          <option value="240">4 hours</option>
+        </select>
+        <button id="saveTimeBtn">Save Limit</button>
       </div>
-
-      <h4>Today's Usage</h4>
-      <canvas id="timeUsageChart" height="120"></canvas>
+      <canvas id="timeUsageChart"></canvas>
     </section>
 
-    <!-- CHILD USAGE TRACKER -->
-    <section class="card card-wide">
-      <h3>Child Usage Overview</h3>
-      <div id="childContainer">
-        <!-- Dynamic child usage data -->
-      </div>
+    <!-- Activity Usage -->
+    <section class="section-card">
+      <h3>Child Activity Usage</h3>
+      <canvas id="activityChart"></canvas>
     </section>
   </main>
 
-  <footer class="app-footer">© 2025 ChildGuard</footer>
+  <footer>© 2025 ChildGuard</footer>
 
-  <script>
-    // Initialize Supabase
-    const SUPABASE_URL = "https://rdnsszxtxsfzlnkvjcen.supabase.co";
-    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // --- BLOCKED WEBSITES SECTION ---
-    let blockedSites = [];
-
-    async function fetchBlockedSites() {
-      const { data } = await supabase.from('child_settings').select('blocked_sites');
-      if (data && data.length > 0) {
-        blockedSites = data[0].blocked_sites || [];
-        renderBlockedSites();
-      }
-    }
-
-    function renderBlockedSites() {
-      const tableBody = document.querySelector("#blockedSitesTable tbody");
-      tableBody.innerHTML = "";
-      blockedSites.forEach((site, i) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${site}</td>
-          <td><button class="btn-delete" onclick="deleteSite(${i})">Delete</button></td>
-        `;
-        tableBody.appendChild(row);
-      });
-    }
-
-    async function addBlockedSite() {
-      const site = document.getElementById("siteInput").value.trim();
-      if (!site) return;
-      blockedSites.push(site);
-      document.getElementById("siteInput").value = "";
-      renderBlockedSites();
-      await supabase.from('child_settings').update({ blocked_sites: blockedSites }).eq('child_id', 'CHILD_UUID');
-    }
-
-    async function deleteSite(index) {
-      blockedSites.splice(index, 1);
-      renderBlockedSites();
-      await supabase.from('child_settings').update({ blocked_sites: blockedSites }).eq('child_id', 'CHILD_UUID');
-    }
-
-    // --- TIME MANAGEMENT SECTION ---
-    async function updateTimeLimit() {
-      const limit = parseInt(document.getElementById("timeLimit").value);
-      if (limit > 0) {
-        await supabase.from('child_settings').update({ time_limit_minutes: limit }).eq('child_id', 'CHILD_UUID');
-        alert("Time limit updated!");
-      }
-    }
-
-    // --- USAGE CHART ---
-    const ctx = document.getElementById('timeUsageChart').getContext('2d');
-    const timeChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Used', 'Remaining'],
-        datasets: [{
-          data: [60, 120 - 60],
-          backgroundColor: ['#ff6384', '#36a2eb']
-        }]
-      },
-      options: {
-        plugins: {
-          legend: { position: 'bottom' }
-        }
-      }
-    });
-
-    async function logoutParent() {
-      await supabase.auth.signOut();
-      window.location.href = "index.html";
-    }
-
-    fetchBlockedSites();
-  </script>
+  <!-- External Scripts -->
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dashboardLogic.js"></script>
 </body>
 </html>
