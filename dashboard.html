@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ChildGuard — Parent Dashboard</title>
-  <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -65,9 +64,7 @@
       padding: 20px;
     }
 
-    h2 {
-      color: #0b2e75;
-    }
+    h2 { color: #0b2e75; }
 
     table {
       width: 100%;
@@ -97,6 +94,7 @@
       display: flex;
       gap: 10px;
       margin-top: 10px;
+      align-items: center;
     }
 
     .input-group input, .input-group select {
@@ -112,6 +110,11 @@
       border: none;
       padding: 8px 14px;
       border-radius: 6px;
+    }
+
+    .minutes-label {
+      color: #444;
+      font-weight: 500;
     }
 
     canvas {
@@ -143,7 +146,7 @@
   <main>
     <h2 id="welcomeText">Welcome</h2>
 
-    <!-- Blocked Sites Management -->
+    <!-- Blocked Sites -->
     <section class="section-card">
       <h3>Blocked Websites</h3>
       <div class="input-group">
@@ -151,9 +154,7 @@
         <button id="addSiteBtn">Add</button>
       </div>
       <table id="blockedSitesTable">
-        <thead>
-          <tr><th>Website</th><th>Action</th></tr>
-        </thead>
+        <thead><tr><th>Website</th><th>Action</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -169,6 +170,7 @@
           <option value="180">3 hours</option>
           <option value="240">4 hours</option>
         </select>
+        <span class="minutes-label">minutes</span>
         <button id="saveTimeBtn">Save Limit</button>
       </div>
       <canvas id="timeUsageChart"></canvas>
@@ -183,8 +185,7 @@
 
   <footer>© 2025 ChildGuard</footer>
 
-  <!-- External Scripts -->
   <script src="js/supabaseClient.js"></script>
-  <script src="js/dashboardLogic.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
