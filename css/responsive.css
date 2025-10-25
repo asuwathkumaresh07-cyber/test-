@@ -1,0 +1,7 @@
+@media (max-width:600px){
+  .app-header{padding:10px}
+  .logo-placeholder{left:10px}
+  .nav-bar{display:none}
+  .form-container{margin:32px auto;padding:16px}
+  .app-footer{display:none}
+}

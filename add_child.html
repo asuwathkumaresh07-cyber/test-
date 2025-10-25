@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ChildGuard — Add Child</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+  <header class="app-header">
+  <style>
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #0b2e75;
+      color: white;
+      padding: 10px 30px;
+    }
+
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo {
+      width: 28px;   /* smaller width */
+      height: 28px;  /* smaller height */
+      border-radius: 6px;
+      object-fit: cover;
+    }
+
+    .app-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-link {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .nav-link.active {
+      background-color: #1a3fa7;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    .logout-btn {
+      background-color: #ff4b4b;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+
+  
+    <div class="logo-title">
+    <img src="C:\Users\HP\Desktop\project001\parent_dashboard\assets\images\logo.jpg" 
+         alt="ChildGuard Logo" class="logo" />
+    <h1 class="app-name">ChildGuard — Add child</h1>
+  </div>
+
+    
+    <nav class="nav-bar">
+      <a href="dashboard.html" class="nav-link">Home</a>
+      <a href="add_child.html" class="nav-link active">Add Child</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+      <button class="btn logout-btn" onclick="logoutParent()">Logout</button>
+    </nav>
+  </header>
+
+  <main class="form-container card fade-in">
+    <form id="addChildForm">
+      <h2>Add Child Profile</h2>
+      <input id="childName" type="text" placeholder="Child name" required />
+      <input id="deviceId" type="text" placeholder="Device ID (optional)" />
+      <button type="submit" class="btn primary btn-block">Add Child</button>
+    </form>
+  </main>
+
+  <footer class="app-footer">© 2025 ChildGuard</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/childManager.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

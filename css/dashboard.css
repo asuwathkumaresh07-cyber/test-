@@ -1,0 +1,5 @@
+.dashboard-container{max-width:980px;margin:28px auto;padding:0 16px;display:flex;flex-direction:column;gap:18px;align-items:center}
+.card-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:14px;width:100%;max-width:980px}
+.card-wide{width:100%;max-width:980px}
+.card h3{margin:0 0 8px 0;color:var(--primary)}
+@media(max-width:800px){.card-grid{grid-template-columns:1fr}.app-title{font-size:1rem}}

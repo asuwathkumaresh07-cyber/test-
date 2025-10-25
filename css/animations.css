@@ -1,0 +1,5 @@
+@keyframes fadeIn{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:none}}
+@keyframes slideInLeft{0%{opacity:0;transform:translateX(-16px)}100%{opacity:1;transform:none}}
+@keyframes slideInRight{0%{opacity:0;transform:translateX(16px)}100%{opacity:1;transform:none}}
+.logo-animate{animation:logoPulse 2.4s ease-in-out infinite}
+@keyframes logoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
