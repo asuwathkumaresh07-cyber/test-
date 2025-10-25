@@ -2,7 +2,6 @@ let parentId = null;
 let selectedChildId = null;
 let blockedSites = [];
 
-// ------------------ INITIAL LOAD ------------------
 document.addEventListener("DOMContentLoaded", async () => {
   const parentData = JSON.parse(localStorage.getItem("parentData"));
   if (!parentData) {
@@ -20,7 +19,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadChildAndSettings();
 });
 
-// ------------------ LOAD CHILD + SETTINGS ------------------
 async function loadChildAndSettings() {
   const { data: children, error: childErr } = await supabase
     .from("children")
@@ -33,11 +31,29 @@ async function loadChildAndSettings() {
   }
 
   selectedChildId = children[0].id;
+  await ensureChildSettingsExist();
   await refreshSettings();
   await loadActivityCharts();
 }
 
-// ------------------ REFRESH SETTINGS ------------------
+// ✅ Ensures settings row exists
+async function ensureChildSettingsExist() {
+  const { data, error } = await supabase
+    .from("child_settings")
+    .select("*")
+    .eq("child_id", selectedChildId)
+    .maybeSingle();
+
+  if (!data) {
+    await supabase.from("child_settings").insert([{
+      child_id: selectedChildId,
+      blocked_sites: [],
+      time_limit_minutes: 120,
+      vpn_enabled: false
+    }]);
+  }
+}
+
 async function refreshSettings() {
   const { data: settings } = await supabase
     .from("child_settings")
@@ -51,7 +67,41 @@ async function refreshSettings() {
   document.getElementById("timeLimit").value = settings?.time_limit_minutes || 120;
 }
 
-// ------------------ BLOCKED SITES ------------------
+// ✅ Add site dynamically
+async function addBlockedSite() {
+  const input = document.getElementById("siteInput");
+  const site = input.value.trim().toLowerCase();
+  if (!site) return alert("Enter a valid site.");
+
+  if (blockedSites.includes(site)) return alert("Already blocked.");
+
+  blockedSites.push(site);
+  await updateBlockedSites();
+  input.value = "";
+}
+
+// ✅ Delete site dynamically
+async function deleteBlockedSite(index) {
+  blockedSites.splice(index, 1);
+  await updateBlockedSites();
+}
+
+// ✅ Update blocked sites in Supabase
+async function updateBlockedSites() {
+  const { error } = await supabase
+    .from("child_settings")
+    .update({ blocked_sites: blockedSites })
+    .eq("child_id", selectedChildId);
+
+  if (error) {
+    console.error(error);
+    alert("Failed to update list.");
+  } else {
+    renderBlockedSites();
+  }
+}
+
+// ✅ Render table dynamically
 function renderBlockedSites() {
   const tbody = document.querySelector("#blockedSitesTable tbody");
   tbody.innerHTML = "";
@@ -70,38 +120,7 @@ function renderBlockedSites() {
   });
 }
 
-async function addBlockedSite() {
-  const input = document.getElementById("siteInput");
-  const site = input.value.trim().toLowerCase();
-  if (!site) return alert("Enter a valid site.");
-
-  if (blockedSites.includes(site)) return alert("Already blocked.");
-
-  blockedSites.push(site);
-  await updateBlockedSites();
-  input.value = "";
-}
-
-async function deleteBlockedSite(index) {
-  blockedSites.splice(index, 1);
-  await updateBlockedSites();
-}
-
-async function updateBlockedSites() {
-  const { error } = await supabase
-    .from("child_settings")
-    .update({ blocked_sites: blockedSites })
-    .eq("child_id", selectedChildId);
-
-  if (error) {
-    console.error(error);
-    alert("Failed to update list.");
-  } else {
-    renderBlockedSites();
-  }
-}
-
-// ------------------ TIME LIMIT ------------------
+// ✅ Save Time Limit
 async function saveTimeLimit() {
   const minutes = parseInt(document.getElementById("timeLimit").value);
   const { error } = await supabase
@@ -117,7 +136,7 @@ async function saveTimeLimit() {
   }
 }
 
-// ------------------ ACTIVITY CHARTS ------------------
+// ✅ Charts (Usage + Time)
 async function loadActivityCharts() {
   const { data: logs } = await supabase
     .from("activity_logs")
@@ -168,7 +187,7 @@ async function loadActivityCharts() {
   });
 }
 
-// ------------------ LOGOUT ------------------
+// ✅ Logout
 function logoutParent() {
   localStorage.removeItem("parentData");
   window.location.href = "login.html";
